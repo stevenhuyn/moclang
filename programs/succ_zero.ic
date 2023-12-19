@@ -1,0 +1,13 @@
+root
+
+zero = (n n)
+app.zero = (* zero)
+app.succ = (app.zero root)
+app.succ = (succ.an succ.rn)
+
+succ.an = (succ.f1 succ.rf1)
+succ.rf1 = (succ.ax succ.rnfx)
+succ.f2 = (succ.rnfx succ.fnfx)
+succ.f = [succ.f1 succ.f2]
+succ.rn = (succ.f succ.rf)
+succ.rf = (succ.ax succ.fnfx)
