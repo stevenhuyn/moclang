@@ -1,0 +1,18 @@
+# Applies ID function onto zero
+
+out
+f
+
+zero = (f (n n))
+
+id = (x x)
+
+app = (out zero)
+
+app = id
+
+
+
+
+
+

@@ -1,0 +1,11 @@
+out
+s
+
+f = (n (s (x (s (n (s x))))))
+zero = (f (n n))
+
+
+out = zero
+
+
+
