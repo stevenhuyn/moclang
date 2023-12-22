@@ -1,75 +1,46 @@
-enum NodeType {
-  Aux,
-  Nil,
-  Two,
+export type Node = App | Lam | Dup | Era;
+
+export interface App {
+  type: "app";
+  id: number;
+  prin: Node;
+  arg: Node;
+  ret: Node;
 }
 
-interface Aux {
-  type: NodeType.Aux;
-  other: Aux;
-  label: string;
+export interface Lam {
+  type: "lam";
+  id: number;
+  prin: Node;
+  left: Node;
+  right: Node;
 }
 
-interface Nil {
-  type: NodeType.Nil;
-  label: undefined;
+export interface Dup {
+  type: "dup";
+  id: number;
+  prin: Node;
+  left: Node;
+  right: Node;
 }
 
-interface Two {
-  type: NodeType.Two;
-  tag: number;
-  label: undefined;
-  left: Tree;
-  right: Tree;
+export interface Era {
+  type: "era";
+  id: number;
+  prin: Node;
 }
 
-type Tree = Aux | Nil | Two;
+type Tree = Node;
+type ActivePair = [Tree, Tree];
+type Net = [Tree[], ActivePair[]];
 
-const con = (a: Tree, b: Tree): Tree => {
-  return ctr(0, a, b);
-};
-
-const dup = (a: Tree, b: Tree): Tree => {
-  return ctr(1, a, b);
-};
-
-// Helper constructor
-const ctr = (tag: number, a: Tree, b: Tree): Tree => {
-  return {
-    type: NodeType.Two,
-    tag,
-    label: undefined,
-    left: a,
-    right: b,
-  };
-};
-
-const wire = (label: string): [Aux, Aux] => {
-  // unsafe
-  {
-    const x: Aux = { type: NodeType.Aux, other: null!, label };
-    const y: Aux = { type: NodeType.Aux, other: x as Aux, label };
-    x.other = y;
-    return [x, y];
-  }
-};
-
-export type Pair = [Tree, Tree];
-
-export type Net = [Tree[], Pair[]];
-
-const pairLabel = (x: Tree, y: Tree): string => {
-  return y.label || x.label || "";
-};
-
-export const reduce = ([a, b]: Pair): Pair => {
-  if (a.type === NodeType.Aux) {
-    if (b.type === NodeType.Aux) {
-      a.other.other = b.other;
-      b.other.other = a.other;
-      a.other.label = b.other.label = pairLabel(a, b);
-    } else {
-      return [a.other, b];
-    }
-  }
-};
+/** Network Lang
+ * # First name all loose wires
+ * root
+ *
+ * # Then name all nodes
+ * # (type id prin left right)
+ *
+ * (lam lamf root era lamn.0)
+ * (lam lamn lamf.1 lamn.1 lamn.0)
+ */
