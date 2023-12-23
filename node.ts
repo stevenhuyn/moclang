@@ -58,10 +58,7 @@ const assignPort = (node: Node, portType: PortType, port: Port) => {
     case Cell.App:
     case Cell.Dup:
     case Cell.Lam:
-      if (
-        portType === PortType.Prin || portType === PortType.Left ||
-        portType === PortType.Right
-      ) {
+      if (portType === PortType.Prin || portType === PortType.Left || portType === PortType.Right) {
         node[portType] = port;
       }
       break;
@@ -105,9 +102,7 @@ const printNode = (node: Node, visited: Set<Node>): void => {
     const port = node[portType];
     if (port) {
       const [connectedNode, connectedPortType] = port;
-      console.log(
-        `  ${portType} -> ${connectedNode.type}:${connectedPortType}`,
-      );
+      console.log(`  ${portType} -> ${connectedNode.type}:${connectedPortType}`);
       printNode(connectedNode, visited);
     }
   }
@@ -120,7 +115,16 @@ const printGraph = (root: Node): void => {
 
 type Tree = Node;
 type ActivePair = [Tree, Tree];
-type Net = [Tree[], ActivePair[]];
+
+class Net {
+  private nodes: Tree[];
+  private activePairs: ActivePair[];
+
+  constructor() {
+    this.nodes = [];
+    this.activePairs = [];
+  }
+}
 
 /** Network Lang
  * # First name all loose wires
