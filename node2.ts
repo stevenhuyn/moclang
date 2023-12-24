@@ -1,6 +1,7 @@
+// deno-lint-ignore-file no-duplicate-case
 type Agent = "app" | "lam" | "dup" | "era" | "var";
-type PortType = "left" | "right" | "prin";
-type Port = [Cell, PortType];
+type Slot = "left" | "right" | "prin";
+type Port = [Cell, Slot];
 interface Cell {
   type: Agent;
   id: number;
@@ -22,13 +23,46 @@ type Active = [Tree, Tree];
 
 class Net {
   private nodeCount: number = 0;
+  private trees: Tree[];
+  private active: Active[];
 
-  constructor(public trees: Tree[], public active: Active[]) {}
+  constructor() {
+    this.trees = [VOID];
+    this.active = [];
+  }
 
   public reduce() {
-    // switch ([a.type, b.type]) {
-    //   case ["app", "app"]:
-    //     this.annihilate(a, b);
+    for (const [a, b] of this.active) {
+      switch ([a.type, b.type]) {
+        case ["app", "app"]:
+          this.annihilate(a.id, b.id);
+          break;
+        case ["lam", "lam"]:
+          this.annihilate(a.id, b.id);
+          break;
+        case ["dup", "dup"]:
+          this.annihilate(a.id, b.id);
+          break;
+        case ["era", "era"]:
+          this.annihilate(a.id, b.id);
+          break;
+
+        case ["app", "dup"]:
+        case ["dup", "app"]:
+          this.duplication(a.id, b.id);
+          break;
+
+        case ["lam", "dup"]:
+        case ["dup", "lam"]:
+          this.duplication(a.id, b.id);
+          break;
+
+        case ["dup", "lam"]:
+        case ["lam", "dup"]:
+          this.duplication(a.id, b.id);
+          break;
+      }
+    }
   }
 
   public annihilate(i: number, j: number) {
@@ -49,7 +83,7 @@ class Net {
     }
 
     // Remove the annihilated nodes
-    this.removePair(i, j);
+    this.replacePair(i, j);
   }
 
   public duplication(i: number, j: number) {
@@ -92,7 +126,7 @@ class Net {
     }
 
     // Remove the duplicated nodes
-    this.removePair(i, j);
+    this.replacePair(i, j);
   }
 
   public spawn(type: Agent): Cell {
@@ -119,7 +153,12 @@ class Net {
     }
   }
 
-  public link(a: Tree, b: Tree, portA: PortType, portB: PortType) {
+  public replacePair(i: number, j: number) {
+    this.trees[j] = VOID;
+    this.trees[i] = VOID;
+  }
+
+  public link(a: Tree, b: Tree, portA: Slot, portB: Slot) {
     a[portA] = [b, portB];
     b[portB] = [a, portA];
   }
