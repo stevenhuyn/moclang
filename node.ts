@@ -77,6 +77,7 @@ export class Agent implements Agent {
 
 export interface INet {
   nodes: Agent[];
+  pairs: [AgentId, AgentId][];
   rewrites: number;
 }
 
@@ -117,34 +118,23 @@ export class INet implements INet {
     }
   }
 
+  // TODO: understand how this works LOL
   public reduce(): void {
-    let current = Port.prin(0);
-    let path = [];
     for (let i = 0; i < 10; i++) {
-      console.log(current, path);
-      const next = this.nodes[current.id][current.slot];
-
-      if (next.id === 0) {
-        return;
-      }
-
-      if (current.slot === Slot.Prin) {
-        if (next.slot === Slot.Prin) {
-          if (current.id === 0 || next.id === 0) {
-            return;
+      for (let aid = 0; aid < this.nodes.length; aid++) {
+        let a = this.nodes[aid];
+        if (a.alive) {
+          const b = a.main;
+          if (b.slot === Slot.Prin && aid !== 0 && b.id !== 0) {
+            this.rewrite(aid, b.id);
+            this.display();
+            break;
           }
-
-          this.rewrite(current.id, next.id);
-          this.display();
-          current = path.pop()!;
-          continue;
         }
       }
-
-      path.push(current);
-      current = Port.prin(next.id);
-      this.display();
     }
+
+    return;
   }
 
   public annihilate(a: AgentId, b: AgentId): void {

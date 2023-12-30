@@ -1,7 +1,3 @@
-import { AgentKind, INet, Port, Slot } from "./node.ts";
-
-// Learn more at https://deno.land/manual/examples/module_metadata#concepts
-if (import.meta.main) {
   const net = INet.default();
 
   // Defining Zero
@@ -39,4 +35,4 @@ if (import.meta.main) {
   net.link(Port.right(app), Port.prin(0));
 
   net.reduce();
-}
+  net.display();
