@@ -118,7 +118,7 @@ export class INet implements INet {
     }
   }
 
-  // TODO: understand how this works LOL
+  // TODO: I should not search the whole tree for pairs everytime
   public reduce(): void {
     for (let i = 0; i < 10; i++) {
       for (let aid = 0; aid < this.nodes.length; aid++) {
