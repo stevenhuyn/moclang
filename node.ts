@@ -1,152 +1,180 @@
-export type Node = App | Lam | Dup | Era | Var;
-
-enum Cell {
-  App = "app",
-  Lam = "lam",
-  Dup = "dup",
-  Era = "era",
-  Var = "var",
+export enum AgentKind {
+  Era,
+  Con,
+  Dup,
 }
 
-enum PortType {
-  Prin = "prin",
+export enum Slot {
+  Prin = "main",
   Left = "left",
   Right = "right",
 }
 
-// Define a port as a tuple of a port to connect to and its port type
-type Port = [Node, PortType];
+export type AgentId = number;
 
-export interface App {
-  type: Cell.App;
-  // id: number;
-  prin: Port | null;
-  left: Port | null;
-  right: Port | null;
+export interface Port {
+  id: AgentId;
+  slot: Slot;
 }
 
-export interface Lam {
-  type: Cell.Lam;
-  // id: number;
-  prin: Port | null;
-  left: Port | null;
-  right: Port | null;
-}
-
-export interface Dup {
-  type: Cell.Dup;
-  // id: number;
-  prin: Port | null;
-  left: Port | null;
-  right: Port | null;
-}
-
-export interface Era {
-  type: Cell.Era;
-  // id: number;
-  prin: Port | null;
-}
-
-export interface Var {
-  type: Cell.Var;
-  // id: number;
-  prin: Port | null;
-}
-
-const assignPort = (node: Node, portType: PortType, port: Port) => {
-  switch (node.type) {
-    case Cell.App:
-    case Cell.Dup:
-    case Cell.Lam:
-      if (portType === PortType.Prin || portType === PortType.Left || portType === PortType.Right) {
-        node[portType] = port;
-      }
-      break;
-    case Cell.Era:
-    case Cell.Var:
-      if (portType === PortType.Prin) {
-        node[portType] = port;
-      }
-      break;
-  }
-};
-
-const link = (a: Node, aPortType: PortType, b: Node, bPortType: PortType) => {
-  const portA: Port = [b, bPortType];
-  const portB: Port = [a, aPortType];
-
-  assignPort(a, aPortType, portA);
-  assignPort(b, bPortType, portB);
-};
-
-const con = (type: Cell): Node => {
-  if (Cell.App === type || Cell.Lam === type || Cell.Dup === type) {
-    return { type, prin: null, left: null, right: null };
-  } else if (Cell.Era === type || Cell.Var === type) {
-    return { type, prin: null };
+export class Port implements Port {
+  constructor(id: AgentId, kind: Slot) {
+    this.id = id;
+    this.slot = kind;
   }
 
-  throw new Error("Invalid type");
-};
-
-const printNode = (node: Node, visited: Set<Node>): void => {
-  if (visited.has(node)) {
-    console.log(`Node (already visited): ${node.type}`);
-    return;
+  static prin(id: AgentId): Port {
+    return new Port(id, Slot.Prin);
   }
 
-  visited.add(node);
+  static left(id: AgentId): Port {
+    return new Port(id, Slot.Left);
+  }
 
-  console.log(`Node: ${node.type}`);
-  for (const portType of Object.values(PortType)) {
-    const port = node[portType];
-    if (port) {
-      const [connectedNode, connectedPortType] = port;
-      console.log(`  ${portType} -> ${connectedNode.type}:${connectedPortType}`);
-      printNode(connectedNode, visited);
+  static right(id: AgentId): Port {
+    return new Port(id, Slot.Right);
+  }
+}
+
+export const ROOT: Port = { id: 0, slot: Slot.Prin };
+
+export interface Agent {
+  main: Port;
+  left: Port;
+  right: Port;
+  kind: AgentKind;
+  alive: boolean;
+}
+
+export class Agent implements Agent {
+  constructor(main: Port, left: Port, right: Port, kind: AgentKind) {
+    this.main = main;
+    this.left = left;
+    this.right = right;
+    this.kind = kind;
+    this.alive = true;
+  }
+
+  static with_id(id: AgentId, kind: AgentKind): Agent {
+    return new Agent(
+      new Port(id, Slot.Prin),
+      new Port(id, Slot.Left),
+      new Port(id, Slot.Right),
+      kind
+    );
+  }
+
+  public port(slot: Slot): Port {
+    switch (slot) {
+      case Slot.Prin:
+        return this.main;
+      case Slot.Left:
+        return this.left;
+      case Slot.Right:
+        return this.right;
     }
   }
-};
 
-const printGraph = (root: Node): void => {
-  const visited = new Set<Node>();
-  printNode(root, visited);
-};
-
-type Tree = Node;
-type ActivePair = [Tree, Tree];
-
-class Net {
-  private nodes: Tree[];
-  private activePairs: ActivePair[];
-
-  constructor() {
-    this.nodes = [];
-    this.activePairs = [];
+  public toString(): string {
+    return `${this.kind}(${this.main.id}, ${this.left.id}, ${this.right.id})`;
   }
 }
 
-/** Network Lang
- * # First name all loose wires
- * root
- *
- * # Then name all nodes
- * # (type id prin left right)
- *
- * (lam lamf root era lamn.0)
- * (lam lamn lamf.1 lamn.1 lamn.0)
- */
+export interface INet {
+  nodes: Agent[];
+  rewrites: number;
+}
 
-// Defining 0 \fx.x
-// let root = con(Cell.Var);
-// let era = con(Cell.Era);
-// let flam = con(Cell.Lam);
-// let nlam = con(Cell.Lam);
-// root.prin = [flam, PortType.Prin];
+export class INet implements INet {
+  private constructor(nodes: Agent[], rewrites: number) {
+    this.nodes = nodes;
+    this.rewrites = rewrites;
+  }
 
-// link(root, PortType.Prin, flam, PortType.Prin);
-// link(flam, PortType.Left, era, PortType.Prin);
-// link(flam, PortType.Right, nlam, PortType.Prin);
-// link(nlam, PortType.Left, nlam, PortType.Right);
+  static default(): INet {
+    return new INet(
+      [
+        new Agent(
+          new Port(0, Slot.Right),
+          new Port(0, Slot.Left),
+          new Port(0, Slot.Prin),
+          AgentKind.Era
+        ),
+      ],
+      0
+    );
+  }
 
-// printGraph(root);
+  public link(a: Port, b: Port): void {
+    this.nodes[a.id][a.slot] = b;
+    this.nodes[b.id][b.slot] = a;
+  }
+
+  public enter(port: Port): Port {
+    return this.nodes[port.id][port.slot];
+  }
+
+  public rewrite(a: AgentId, b: AgentId): void {
+    this.rewrites += 1;
+    const a_node = this.nodes[a];
+    const b_node = this.nodes[b];
+
+    console.log(a, b);
+    console.log(a_node.kind, b_node.kind);
+    console.log("bruh", [a_node.kind, b_node.kind].join(","));
+
+    if (a_node.kind === b_node.kind) {
+      this.annihilate(a, b);
+    } else {
+      this.commute(a, b);
+    }
+  }
+
+  public annihilate(a: AgentId, b: AgentId): void {
+    const a_left = this.nodes[a].left;
+    const b_left = this.nodes[b].left;
+    this.link(a_left, b_left);
+
+    const a_right = this.nodes[a].right;
+    const b_right = this.nodes[b].right;
+    this.link(a_right, b_right);
+  }
+
+  public commute(a_id: AgentId, b_id: AgentId): void {
+    const a_node = this.nodes[a_id];
+    const b_node = this.nodes[b_id];
+
+    const a_new_id = this.alloc(a_node.kind);
+    const b_new_id = this.alloc(b_node.kind);
+
+    const a_left = this.nodes[a_id].left;
+    this.link(new Port(b_new_id, Slot.Left), a_left);
+
+    const a_right = this.nodes[a_id].right;
+    this.link(new Port(b_id, Slot.Right), a_right);
+
+    const b_left = this.nodes[b_id].left;
+    this.link(new Port(a_new_id, Slot.Left), b_left);
+
+    const b_right = this.nodes[b_id].right;
+    this.link(new Port(a_id, Slot.Right), b_right);
+
+    this.link(new Port(a_new_id, Slot.Prin), new Port(b_new_id, Slot.Left));
+    this.link(new Port(a_new_id, Slot.Right), new Port(b_id, Slot.Right));
+    this.link(new Port(a_id, Slot.Left), new Port(b_new_id, Slot.Right));
+    this.link(new Port(a_id, Slot.Right), new Port(b_id, Slot.Right));
+  }
+
+  public alloc(kind: AgentKind): AgentId {
+    const id = this.nodes.length;
+    this.nodes.push(Agent.with_id(id, kind));
+    return id;
+  }
+
+  public display(): void {
+    for (let i = 0; i < this.nodes.length; i++) {
+      const node = this.nodes[i];
+      console.log(i, node.toString());
+    }
+  }
+}
