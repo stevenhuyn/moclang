@@ -71,7 +71,7 @@ export class Agent implements Agent {
   }
 
   public toString(): string {
-    return `${this.kind}(${this.main.id}, ${this.left.id}, ${this.right.id})`;
+    return `${this.kind}(${this.main.id}-${this.main.slot}, ${this.left.id}-${this.left.slot}, ${this.right.id}-${this.right.slot})`;
   }
 }
 
@@ -108,14 +108,38 @@ export class INet implements INet {
     const a_node = this.nodes[a];
     const b_node = this.nodes[b];
 
-    console.log(a, b);
-    console.log(a_node.kind, b_node.kind);
-    console.log("bruh", [a_node.kind, b_node.kind].join(","));
-
     if (a_node.kind === b_node.kind) {
+      console.log("Annihilating", a, b);
       this.annihilate(a, b);
     } else {
+      console.log("Commuting", a, b);
       this.commute(a, b);
+    }
+  }
+
+  public reduce(): void {
+    let current = Port.prin(0);
+    let path = [];
+    for (let i = 0; i < 5; i++) {
+      const next = this.nodes[current.id][current.slot];
+      console.log(current, next);
+
+      if (next.id === 0) {
+        return;
+      }
+
+      if (current.slot === Slot.Prin) {
+        if (next.slot === Slot.Prin) {
+          this.rewrite(current.id, next.id);
+          this.display();
+          current = path.pop()!;
+          continue;
+        }
+      }
+
+      path.push(current);
+      current = Port.prin(next.id);
+      this.display();
     }
   }
 
@@ -136,29 +160,26 @@ export class INet implements INet {
     this.nodes[id].alive = false;
   }
 
-  public commute(a_id: AgentId, b_id: AgentId): void {
-    const a_node = this.nodes[a_id];
-    const b_node = this.nodes[b_id];
+  public commute(a: AgentId, b: AgentId): void {
+    const an = this.alloc(this.nodes[a].kind);
+    const bn = this.alloc(this.nodes[b].kind);
 
-    const a_new_id = this.alloc(a_node.kind);
-    const b_new_id = this.alloc(b_node.kind);
+    const a_left = this.nodes[a].left;
+    this.link(Port.prin(a), a_left);
 
-    const a_left = this.nodes[a_id].left;
-    this.link(Port.left(b_new_id), a_left);
+    const a_right = this.nodes[a].right;
+    this.link(Port.prin(an), a_right);
 
-    const a_right = this.nodes[a_id].right;
-    this.link(Port.right(b_id), a_right);
+    const b_left = this.nodes[b].left;
+    this.link(Port.prin(bn), b_left);
 
-    const b_left = this.nodes[b_id].left;
-    this.link(Port.left(a_new_id), b_left);
+    const b_right = this.nodes[b].right;
+    this.link(Port.prin(b), b_right);
 
-    const b_right = this.nodes[b_id].right;
-    this.link(Port.right(a_id), b_right);
-
-    this.link(Port.prin(a_new_id), Port.left(b_new_id));
-    this.link(Port.right(a_new_id), Port.right(b_id));
-    this.link(Port.left(a_id), Port.right(b_new_id));
-    this.link(Port.right(a_id), Port.right(b_id));
+    this.link(Port.left(b), Port.right(a));
+    this.link(Port.right(b), Port.right(an));
+    this.link(Port.left(bn), Port.left(a));
+    this.link(Port.right(bn), Port.left(an));
   }
 
   public alloc(kind: AgentKind): AgentId {
