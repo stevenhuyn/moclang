@@ -120,9 +120,9 @@ export class INet implements INet {
   public reduce(): void {
     let current = Port.prin(0);
     let path = [];
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
+      console.log(current, path);
       const next = this.nodes[current.id][current.slot];
-      console.log(current, next);
 
       if (next.id === 0) {
         return;
@@ -130,6 +130,10 @@ export class INet implements INet {
 
       if (current.slot === Slot.Prin) {
         if (next.slot === Slot.Prin) {
+          if (current.id === 0 || next.id === 0) {
+            return;
+          }
+
           this.rewrite(current.id, next.id);
           this.display();
           current = path.pop()!;
@@ -165,21 +169,21 @@ export class INet implements INet {
     const bn = this.alloc(this.nodes[b].kind);
 
     const a_left = this.nodes[a].left;
-    this.link(Port.prin(a), a_left);
+    this.link(Port.prin(b), a_left);
 
     const a_right = this.nodes[a].right;
-    this.link(Port.prin(an), a_right);
+    this.link(Port.prin(bn), a_right);
 
     const b_left = this.nodes[b].left;
-    this.link(Port.prin(bn), b_left);
+    this.link(Port.prin(an), b_left);
 
     const b_right = this.nodes[b].right;
-    this.link(Port.prin(b), b_right);
+    this.link(Port.prin(a), b_right);
 
-    this.link(Port.left(b), Port.right(a));
-    this.link(Port.right(b), Port.right(an));
-    this.link(Port.left(bn), Port.left(a));
-    this.link(Port.right(bn), Port.left(an));
+    this.link(Port.left(a), Port.right(b));
+    this.link(Port.right(a), Port.right(bn));
+    this.link(Port.left(an), Port.left(b));
+    this.link(Port.right(an), Port.left(bn));
   }
 
   public alloc(kind: AgentKind): AgentId {
