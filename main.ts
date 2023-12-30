@@ -23,7 +23,7 @@ if (import.meta.main) {
   net.link(Port.prin(a_legs), Port.prin(0));
   net.link(Port.prin(b_legs), Port.right(0));
 
-  net.link(new Port(a, Slot.Prin), new Port(b, Slot.Prin));
+  net.link(Port.prin(a), Port.prin(b));
   console.log("Linked");
   net.display();
 
