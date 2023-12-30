@@ -18,7 +18,7 @@ export interface Port {
 }
 
 export class Port implements Port {
-  constructor(id: AgentId, kind: Slot) {
+  private constructor(id: AgentId, kind: Slot) {
     this.id = id;
     this.slot = kind;
   }
@@ -56,12 +56,7 @@ export class Agent implements Agent {
   }
 
   static with_id(id: AgentId, kind: AgentKind): Agent {
-    return new Agent(
-      new Port(id, Slot.Prin),
-      new Port(id, Slot.Left),
-      new Port(id, Slot.Right),
-      kind
-    );
+    return new Agent(Port.prin(id), Port.left(id), Port.right(id), kind);
   }
 
   public port(slot: Slot): Port {
@@ -92,15 +87,9 @@ export class INet implements INet {
   }
 
   static default(): INet {
+    // Creating a root node where the left connect to lect and prin connect to right bruh
     return new INet(
-      [
-        new Agent(
-          new Port(0, Slot.Right),
-          new Port(0, Slot.Left),
-          new Port(0, Slot.Prin),
-          AgentKind.Era
-        ),
-      ],
+      [new Agent(Port.right(0), Port.left(0), Port.prin(0), AgentKind.Era)],
       0
     );
   }
@@ -138,6 +127,13 @@ export class INet implements INet {
     const a_right = this.nodes[a].right;
     const b_right = this.nodes[b].right;
     this.link(a_right, b_right);
+
+    this.kill(a);
+    this.kill(b);
+  }
+
+  public kill(id: AgentId): void {
+    this.nodes[id].alive = false;
   }
 
   public commute(a_id: AgentId, b_id: AgentId): void {
@@ -148,21 +144,21 @@ export class INet implements INet {
     const b_new_id = this.alloc(b_node.kind);
 
     const a_left = this.nodes[a_id].left;
-    this.link(new Port(b_new_id, Slot.Left), a_left);
+    this.link(Port.left(b_new_id), a_left);
 
     const a_right = this.nodes[a_id].right;
-    this.link(new Port(b_id, Slot.Right), a_right);
+    this.link(Port.right(b_id), a_right);
 
     const b_left = this.nodes[b_id].left;
-    this.link(new Port(a_new_id, Slot.Left), b_left);
+    this.link(Port.left(a_new_id), b_left);
 
     const b_right = this.nodes[b_id].right;
-    this.link(new Port(a_id, Slot.Right), b_right);
+    this.link(Port.right(a_id), b_right);
 
-    this.link(new Port(a_new_id, Slot.Prin), new Port(b_new_id, Slot.Left));
-    this.link(new Port(a_new_id, Slot.Right), new Port(b_id, Slot.Right));
-    this.link(new Port(a_id, Slot.Left), new Port(b_new_id, Slot.Right));
-    this.link(new Port(a_id, Slot.Right), new Port(b_id, Slot.Right));
+    this.link(Port.prin(a_new_id), Port.left(b_new_id));
+    this.link(Port.right(a_new_id), Port.right(b_id));
+    this.link(Port.left(a_id), Port.right(b_new_id));
+    this.link(Port.right(a_id), Port.right(b_id));
   }
 
   public alloc(kind: AgentKind): AgentId {
@@ -174,7 +170,9 @@ export class INet implements INet {
   public display(): void {
     for (let i = 0; i < this.nodes.length; i++) {
       const node = this.nodes[i];
-      console.log(i, node.toString());
+      if (node.alive) {
+        console.log(i, node.toString());
+      }
     }
   }
 }
