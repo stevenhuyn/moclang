@@ -1,27 +1,50 @@
 // https://ruslanspivak.com/lsbasi-part7/
+// https://craftinginterpreters.com/parsing-expressions.html
 
 enum TokenType {
-  LeftParen,
-  RightParen,
-  Plus,
-  Multiply,
-  Number,
+  LeftParen = "LeftParen",
+  RightParen = "RightParen",
+  Add = "Add",
+  Multiply = "Multiply",
+  Number = "Number",
+  EOF = "EOF",
 }
+
+interface Token {
+  type: TokenType;
+  value: string;
+}
+
+const Token = (type: TokenType, value: string): Token => ({ type, value });
 
 interface Tokens {
-  next: () => string | null;
-  peek: () => string | null;
+  advance: () => Token;
+  peek: () => Token;
+  prev: () => Token;
 }
 
-function lex(input: string): Tokens {
+const lex = (input: string): Tokens => {
   const re = /[()+*]|\d+/g;
   const matches = input.matchAll(re);
-  const tokens = Array.from(matches, (match) => match[0]);
+  const tokens = Array.from(matches, (match) => {
+    let token = match[0];
+    if (token === "(") {
+      return Token(TokenType.LeftParen, token);
+    } else if (token === ")") {
+      return Token(TokenType.RightParen, token);
+    } else if (token === "+") {
+      return Token(TokenType.Add, token);
+    } else if (token === "*") {
+      return Token(TokenType.Multiply, token);
+    } else {
+      return Token(TokenType.Number, token);
+    }
+  });
 
   let curr = 0;
-  const next = () => {
+  const advance = () => {
     if (curr >= tokens.length) {
-      return null;
+      return Token(TokenType.EOF, "");
     }
 
     const token = tokens[curr];
@@ -30,14 +53,22 @@ function lex(input: string): Tokens {
   };
   const peek = () => {
     if (curr >= tokens.length) {
-      return null;
+      return Token(TokenType.EOF, "");
     }
 
     return tokens[curr];
   };
 
-  return { next, peek };
-}
+  const prev = () => {
+    if (curr <= 0) {
+      return Token(TokenType.EOF, "");
+    }
+
+    return tokens[curr - 1];
+  };
+
+  return { advance, peek, prev };
+};
 
 interface AddExpr {
   kind: "Addition";
@@ -75,77 +106,66 @@ const NumExpr = (value: number): NumExpr => ({
 
 type Expr = AddExpr | MulExpr | NumExpr;
 
-class Parser {
-  private tokens: Tokens;
-
-  constructor(tokens: Tokens) {
-    this.tokens = tokens;
-  }
-
-  parse(): Expr | null {
-    const nextToken = this.tokens.peek();
-    if (nextToken === null) {
-      return null;
-    } else if (nextToken === "(") {
-      this.tokens.next();
-      const expr = this.parse();
-      this.tokens.next();
-      return expr;
-    } else if (nextToken === ")") {
-      return null;
-    } else if (nextToken === "+") {
-      this.tokens.next();
-      const expr = this.parse();
-      this.tokens.next();
-      return expr;
-    } else if (nextToken === "*") {
-      this.tokens.next();
-      const expr = this.parse();
-      this.tokens.next();
-      return expr;
-    } else if (/\d+/.test(nextToken)) {
-      this.tokens.next();
-      return NumExpr(parseInt(nextToken)));
-    }
-
-    return null;
-  }
-}
-
-function parse(tokens: Tokens): Expr | null {
-  const nextToken = tokens.peek();
-  if (nextToken === null) {
-    return null;
-  } else if (nextToken === "(") {
-    tokens.next();
-    const expr = parse(tokens);
-    tokens.next();
-    return expr;
-  } else if (nextToken === ")") {
-    return null;
-  } else if (nextToken === "+") {
-    tokens.next();
-    const expr = parse(tokens);
-    tokens.next();
-    return expr;
-  } else if (nextToken === "*") {
-    tokens.next();
-    const expr = parse(tokens);
-    tokens.next();
-    return expr;
-  } else if (/\d+/.test(nextToken)) {
-    tokens.next();
-    return NumExpr(parseInt(nextToken)));
-  }
-
-  return null;
-}
-
-if (import.meta.main) {
-  let input = "1 + 2 * 3";
+const parse = (input: string): Expr => {
   const tokens = lex(input);
 
-  for (let token = tokens.next(); token !== undefined; token = tokens.next()) {
-    console.log(token);
-  }
+  const eat = (type: TokenType): void => {
+    if (tokens.peek().type !== type) {
+      throw new Error(`Expected ${type}`);
+    }
+    tokens.advance();
+  };
+
+  /**
+   * expr     : binary
+   * binary   : literal ( (MUL | ADD) literal )*
+   * literal  : NUMBER | LEFT_PAREN expr RIGHT_PAREN
+   */
+  const expr = (): Expr => {
+    return binary();
+  };
+
+  const binary = (): Expr => {
+    let ret = literal();
+    while (
+      tokens.peek().type === TokenType.Add ||
+      tokens.peek().type === TokenType.Multiply
+    ) {
+      const token = tokens.peek();
+      if (token.type === TokenType.Add) {
+        eat(TokenType.Add);
+        const right = literal();
+        ret = AddExpr(ret, right);
+      } else if (token.type === TokenType.Multiply) {
+        eat(TokenType.Multiply);
+        const right = literal();
+        ret = MulExpr(ret, right);
+      }
+    }
+
+    return ret;
+  };
+
+  const literal = (): Expr => {
+    const token = tokens.peek();
+    if (token.type === TokenType.Number) {
+      eat(TokenType.Number);
+      return NumExpr(parseInt(token.value));
+    } else if (token.type === TokenType.LeftParen) {
+      eat(TokenType.LeftParen);
+      const exprNode = expr();
+      eat(TokenType.RightParen);
+      return exprNode;
+    } else {
+      throw new Error("Expected number or '('");
+    }
+  };
+
+  return expr();
+};
+
+if (import.meta.main) {
+  let input = "(1 + 2 * 3) + 4";
+  const tokens = parse(input);
+  console.log(tokens);
 }
