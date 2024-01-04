@@ -109,6 +109,7 @@ export class INet implements INet {
     const a_node = this.nodes[a];
     const b_node = this.nodes[b];
 
+    // TODO: be careful with erase nodes I think.
     if (a_node.kind === b_node.kind) {
       console.log("Annihilating", a, b);
       this.annihilate(a, b);
@@ -133,8 +134,6 @@ export class INet implements INet {
         }
       }
     }
-
-    return;
   }
 
   public annihilate(a: AgentId, b: AgentId): void {

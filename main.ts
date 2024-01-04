@@ -1,4 +1,4 @@
-import { AgentKind, INet, Port, Slot } from "./node.ts";
+import { AgentKind, INet, Port, Slot } from "./INet.ts";
 
 // Learn more at https://deno.land/manual/examples/module_metadata#concepts
 if (import.meta.main) {
