@@ -1,9 +1,9 @@
 {
-  "deno.enable": false,
+  "deno.enable": true,
   // "deno.lint": true,
   // "deno.unstable": true,
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "denoland.vscode-deno",
-  "editor.tabSize": 2
-  // "editor.acceptSuggestionOnCommitCharacter": false
+  "editor.tabSize": 2,
+  "editor.acceptSuggestionOnCommitCharacter": true
 }
