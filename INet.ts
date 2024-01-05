@@ -89,7 +89,9 @@ export class INet implements INet {
 
   static default(): INet {
     // Creating a root node where the left connect to lect and prin connect to right bruh
-    return new INet([new Agent(Port.right(0), Port.left(0), Port.prin(0), AgentKind.Era)], 0);
+    return new INet([
+      new Agent(Port.right(0), Port.left(0), Port.prin(0), AgentKind.Era),
+    ], 0);
   }
 
   public link(a: Port, b: Port): void {
@@ -115,6 +117,8 @@ export class INet implements INet {
       this.commute(a, b);
     }
   }
+
+  public test;
 
   // TODO: I should not search the whole tree for pairs everytime
   public reduce(): void {

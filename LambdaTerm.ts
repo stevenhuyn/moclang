@@ -1,8 +1,8 @@
-import { AgentId, AgentKind, INet, Port, Slot } from "./INet";
+import { AgentId, AgentKind, INet, Port, Slot } from "./INet.ts";
 
 interface LamExpr {
   kind: "Lambda";
-  arg: Symbol;
+  arg: symbol;
   body: LambdaExpr;
 }
 
@@ -14,15 +14,15 @@ interface AppExpr {
 
 interface VarExpr {
   kind: "Variable";
-  name: Symbol;
+  name: symbol;
 }
 
 interface ArgExpr {
   kind: "Argument";
-  name: Symbol;
+  name: symbol;
 }
 
-const LamExpr = (arg: Symbol, body: LambdaExpr): LamExpr => ({
+const LamExpr = (arg: symbol, body: LambdaExpr): LamExpr => ({
   kind: "Lambda",
   arg,
   body,
@@ -34,7 +34,7 @@ const AppExpr = (left: LambdaExpr, right: LambdaExpr): AppExpr => ({
   right,
 });
 
-const VarExpr = (name: Symbol): VarExpr => {
+const VarExpr = (name: symbol): VarExpr => {
   return {
     kind: "Variable",
     name: name,
@@ -43,28 +43,28 @@ const VarExpr = (name: Symbol): VarExpr => {
 
 type LambdaExpr = LamExpr | AppExpr | VarExpr;
 
-const lambdaToNet = (expr: LambdaExpr): INet => {
-  // Holding expression + parent to relink
-  let stack: [LambdaExpr, AgentId][] = [[expr, 0]];
-  let net = INet.default();
-  let args: Set<Symbol> = [];
+// const lambdaToNet = (expr: LambdaExpr): INet => {
+//   // Holding expression + parent to relink
+//   let stack: [LambdaExpr, AgentId][] = [[expr, 0]];
+//   let net = INet.default();
+//   let args: Set<symbol> = [];
 
-  while (stack.length > 0) {
-    const [currLamExpr, parentNetId] = stack.pop()!;
+//   while (stack.length > 0) {
+//     const [currLamExpr, parentNetId] = stack.pop()!;
 
-    if (currLamExpr.kind == "Lambda") {
-      const arg = currLamExpr.arg;
-      args.add(arg);
-      const currNetId = net.alloc(AgentKind.Con);
+//     if (currLamExpr.kind == "Lambda") {
+//       const arg = currLamExpr.arg;
+//       args.add(arg);
+//       const currNetId = net.alloc(AgentKind.Con);
 
-      const parentType = net.nodes[parentNetId].kind;
-      if (parentType == AgentKind.Con) {
-        net.link(Port.prin(currNetId), Port.right(parentNetId));
-      } else if (parentType == AgentKind.Con) {
-        net.link(Port.prin(currNetId), Port.left(parentNetId));
-      }
+//       const parentType = net.nodes[parentNetId].kind;
+//       if (parentType == AgentKind.Con) {
+//         net.link(Port.prin(currNetId), Port.right(parentNetId));
+//       } else if (parentType == AgentKind.Con) {
+//         net.link(Port.prin(currNetId), Port.left(parentNetId));
+//       }
 
-      stack.push([currLamExpr.body, currNetId]);
-    }
-  }
-};
+//       stack.push([currLamExpr.body, currNetId]);
+//     }
+//   }
+// };
