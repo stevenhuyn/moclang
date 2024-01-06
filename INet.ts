@@ -118,8 +118,6 @@ export class INet implements INet {
     }
   }
 
-  public test;
-
   // TODO: I should not search the whole tree for pairs everytime
   public reduce(): void {
     for (let i = 0; i < 10; i++) {
