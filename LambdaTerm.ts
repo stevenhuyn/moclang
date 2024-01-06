@@ -115,4 +115,6 @@ const lambdaToNet = (expr: LambdaExpr): INet => {
       } 
     }
   }
+
+  return net;
 };
