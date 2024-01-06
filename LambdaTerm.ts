@@ -17,7 +17,7 @@ interface VarExpr {
   name: symbol;
 }
 
-const LamExpr = (arg: symbol, body: LambdaExpr): LamExpr => ({
+const LamExpr = (arg: VarExpr, body: LambdaExpr): LamExpr => ({
   kind: "Lambda",
   arg,
   body,
@@ -39,6 +39,8 @@ const VarExpr = (name: symbol): VarExpr => {
 type LambdaExpr = LamExpr | AppExpr | VarExpr;
 type parentContext = "arg" | "body" | "left" | "right" | "root";
 type AgentLookup = Map<AgentId, LambdaExpr["kind"] | "Root">;
+
+const identity = LamExpr(VarExpr(Symbol("x")), VarExpr(Symbol("x")));
 
 const lambdaToNet = (expr: LambdaExpr): INet => {
   // (lamCurrent, lamParent, netParentId, parentContext)
@@ -116,5 +118,12 @@ const lambdaToNet = (expr: LambdaExpr): INet => {
     }
   }
 
+  console.log(lookup);
   return net;
 };
+
+
+if (import.meta.main) {
+  const net = lambdaToNet(identity);
+  net.display();
+}

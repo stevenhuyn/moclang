@@ -1,7 +1,7 @@
 export enum AgentKind {
-  Era,
-  Con,
-  Dup,
+  Era = "Era",
+  Con = "Con",
+  Dup = "Dup",
 }
 
 export enum Slot {
