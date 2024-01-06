@@ -38,10 +38,6 @@ const VarExpr = (name: symbol): VarExpr => {
 
 type LambdaExpr = LamExpr | AppExpr | VarExpr;
 type parentContext = "arg" | "body" | "left" | "right" | "root";
-type SymbolMap = Map<symbol, AgentId[]>;
-
-let x = Symbol("x");
-const identity = LamExpr(VarExpr(x), VarExpr(x));
 
 const lambdaToNet = (expr: LambdaExpr): INet => {
   // (lamCurrent, lamParent, netParentId, parentContext)
@@ -143,19 +139,35 @@ const lambdaToNet = (expr: LambdaExpr): INet => {
     for (let i = 0; i < varAgentData.length - 1; i++) {
       let dup = net.alloc(AgentKind.Dup);
       let connection = connections.pop()!;
+
       net.link(Port.prin(dup), Port.left(connection.id));
       connections.push(Port.right(dup), Port.left(dup));
     }
 
+    const toBeKilled = [];
 
     // zipping varAgentData and connections
-    // TODO: remove dead ERAs
     for (let i = 0; i < varAgentData.length; i++) {
       const varPort = varAgentData[i];
       const argPort = connections[i];
 
+      const varPortParent = net.nodes[net.enter(varPort).id].kind;
+      const argPortParent = net.nodes[net.enter(argPort).id].kind;
+      if (varPortParent == AgentKind.Era) {
+        toBeKilled.push(net.enter(varPort).id);
+      }
+
+      if (argPortParent == AgentKind.Era) {
+        toBeKilled.push(net.enter(argPort).id);
+      }
+      
       console.log(argPort, varPort);
       net.link(argPort, varPort);
+    }
+
+    // Remove dead ERAs
+    for (const eraId of toBeKilled) {
+      net.kill(eraId);
     }
   }
 
@@ -164,6 +176,12 @@ const lambdaToNet = (expr: LambdaExpr): INet => {
 
 
 if (import.meta.main) {
-  const net = lambdaToNet(identity);
+  const x = VarExpr(Symbol("x"));
+  const y = VarExpr(Symbol("y"));
+  const doubleApplyExpr = LamExpr(x, AppExpr(x, x));
+  const appliedExpr = AppExpr(doubleApplyExpr, y);
+
+  const net = lambdaToNet(appliedExpr);
   net.display();
+  net.reduce();
 }
