@@ -38,23 +38,25 @@ const VarExpr = (name: symbol): VarExpr => {
 
 type LambdaExpr = LamExpr | AppExpr | VarExpr;
 type parentContext = "arg" | "body" | "left" | "right" | "root";
-type AgentLookup = Map<AgentId, LambdaExpr["kind"] | "Root">;
+type SymbolMap = Map<symbol, AgentId[]>;
 
-const identity = LamExpr(VarExpr(Symbol("x")), VarExpr(Symbol("x")));
+let x = Symbol("x");
+const identity = LamExpr(VarExpr(x), VarExpr(x));
 
 const lambdaToNet = (expr: LambdaExpr): INet => {
   // (lamCurrent, lamParent, netParentId, parentContext)
   let stack: [LambdaExpr, LambdaExpr | null, AgentId, parentContext][] = [[expr, null, 0, "root"]];
   let net = INet.default();
-  let lookup: AgentLookup = new Map();
-  lookup.set(0, "Root");
+  let argSymbols: Map<symbol, AgentId> = new Map();
+  let varSymbols: Map<symbol, Port[]> = new Map();
 
   while (stack.length > 0) {
     const [currLamExpr, parentLamExpr, parentNetId, context] = stack.pop()!;
 
     if (currLamExpr.kind == "Lambda") {
       const currNetId = net.alloc(AgentKind.Con);
-      lookup.set(currNetId, "Lambda");
+      argSymbols.set(currLamExpr.arg.name, currNetId);
+
       stack.push([currLamExpr.arg, currLamExpr, currNetId, "arg"]);
       stack.push([currLamExpr.body, currLamExpr, currNetId, "body"]);
 
@@ -77,7 +79,6 @@ const lambdaToNet = (expr: LambdaExpr): INet => {
 
     } else if (currLamExpr.kind == "Application") {
       const currNetId = net.alloc(AgentKind.Con);
-      lookup.set(currNetId, "Application");
       stack.push([currLamExpr.left, currLamExpr, currNetId, "left"]);
       stack.push([currLamExpr.right, currLamExpr, currNetId, "right"]);
 
@@ -98,27 +99,66 @@ const lambdaToNet = (expr: LambdaExpr): INet => {
       }
     } else if (currLamExpr.kind == "Variable") {
       const currNetId = net.alloc(AgentKind.Era);
-      lookup.set(currNetId, "Variable");
+
+      if (!varSymbols.has(currLamExpr.name)) {
+        varSymbols.set(currLamExpr.name, []);
+      }
+
 
       if (parentLamExpr === null) {
         throw new Error("Impossible");
       } else if (parentLamExpr.kind === "Lambda") {
         if (context == "arg") {
+          // Don't push here because it's an argSymbol
+          // varSymbols.get(currLamExpr.name)!.push(Port.left(parentNetId));
           net.link(Port.prin(currNetId), Port.left(parentNetId));
         } else if (context == "body") {
+          varSymbols.get(currLamExpr.name)!.push(Port.right(parentNetId));
           net.link(Port.prin(currNetId), Port.right(parentNetId));
         }
       } else if (parentLamExpr.kind === "Application") {
         if (context == "left") {
+          varSymbols.get(currLamExpr.name)!.push(Port.prin(parentNetId));
           net.link(Port.prin(currNetId), Port.prin(parentNetId));
         } else if (context == "right") {
+          varSymbols.get(currLamExpr.name)!.push(Port.left(parentNetId));
           net.link(Port.prin(currNetId), Port.left(parentNetId));
         }
       } 
     }
   }
 
-  console.log(lookup);
+  console.log(argSymbols);
+  console.log(varSymbols);
+
+  // Now to link up any variables to args
+  for (const [symbol, agentId] of argSymbols) {
+    if (!varSymbols.has(symbol)) {
+      throw new Error("Impossible");
+    }
+
+    const varAgentData = varSymbols.get(symbol)!;
+    let connections = [Port.left(agentId)];
+
+    for (let i = 0; i < varAgentData.length - 1; i++) {
+      let dup = net.alloc(AgentKind.Dup);
+      let connection = connections.pop()!;
+      net.link(Port.prin(dup), Port.left(connection.id));
+      connections.push(Port.right(dup), Port.left(dup));
+    }
+
+
+    // zipping varAgentData and connections
+    // TODO: remove dead ERAs
+    for (let i = 0; i < varAgentData.length; i++) {
+      const varPort = varAgentData[i];
+      const argPort = connections[i];
+
+      console.log(argPort, varPort);
+      net.link(argPort, varPort);
+    }
+  }
+
   return net;
 };
 
